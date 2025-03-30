@@ -1,3 +1,26 @@
+const express = require('express');
+const path = require('path');
+const app = express();
+
+// Serve static files from the current directory
+app.use(express.static(__dirname));
+
+// Define a route for the root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Your existing code (e.g., middleware, routes)
+app.get('/api/most-tracked-bills', (req, res) => {
+    // Your handler code
+});
+
+// Start the server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
 // Helper function to get most tracked bills
 function getMostTrackedBills(billsData) {
   const trackedBills = Object.keys(billsData).map(serialNumber => {
