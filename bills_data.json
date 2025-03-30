@@ -1,14 +1,15 @@
+
 {
   "MD41805466C": {
     "lastTracked": "2025-03-30",
     "trackedHistory": [
-      { "city": "Tuxedo Park", "state": "NY", "date": "2025-03-30" },
+      { "city": "Tuxedo Park", "state": "NY", "date": "2025-03-30" }
     ]
   },
   "Test": {
     "lastTracked": "2025-03-29",
     "trackedHistory": [
-      { "city": "Chicago", "state": "IL", "date": "2025-03-27" }
+      { "city": "Chicago", "state": "IL", "date": "2025-03-27" },
       { "city": "Reno", "state": "NV", "date": "2020-02-1" }
     ]
   }
