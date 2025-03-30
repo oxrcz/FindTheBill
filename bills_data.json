@@ -1,16 +1,27 @@
 
 {
   "MD41805466C": {
+    "trackedHistory": [
+      {
+        "city": "Sloatsburgh",
+        "state": "NY",
+        "date": "2025-03-30"
+      }
+    ],
     "lastTracked": "2025-03-30",
+    "trackedCount": 1
+  }
+}
+{
+  "BILL_TEMPLATE": {
     "trackedHistory": [
-      { "city": "Tuxedo Park", "state": "NY", "date": "2025-03-30" }
-    ]
-  },
-  "Test": {
-    "lastTracked": "2025-03-29",
-    "trackedHistory": [
-      { "city": "Chicago", "state": "IL", "date": "2025-03-27" },
-      { "city": "Reno", "state": "NV", "date": "2020-02-1" }
-    ]
+      {
+        "city": "Unknown City",
+        "state": "Unknown State",
+        "date": "YYYY-MM-DD"
+      }
+    ],
+    "lastTracked": "YYYY-MM-DD",
+    "trackedCount": 0
   }
 }
