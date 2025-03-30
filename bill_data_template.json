@@ -1,0 +1,13 @@
+{
+"BILL_TEMPLATE": {
+  "trackedHistory": [
+    {
+      "city": "Unknown City",
+      "state": "Unknown State",
+      "date": "YYYY-MM-DD"
+    }
+  ],
+  "lastTracked": "YYYY-MM-DD",
+  "trackedCount": 0
+}
+}
