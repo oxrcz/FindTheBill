@@ -1,6 +1,17 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
+
+function readBillsData() {
+  try {
+    const data = fs.readFileSync(path.join(__dirname, 'bills_data.json'), 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error reading bills data:', error);
+    return {};
+  }
+}
 
 // Serve static files from the current directory
 app.use(express.static(__dirname));
@@ -10,8 +21,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Serve the most tracked bills page
+app.get('/most_tracked_bills', (req, res) => {
+  res.sendFile(path.join(__dirname, 'most_tracked_bills.html'));
+});
+
+// Serve the most tracked cities page
+app.get('/most_tracked_cities', (req, res) => {
+  res.sendFile(path.join(__dirname, 'most_tracked_cities.html'));
+});
+
 // Your existing code (e.g., middleware, routes)
-app.get('/api/most-tracked-bills', (req, res) => {
+app.get('/api/most_tracked_bills', (req, res) => {
     // Your handler code
 });
 
@@ -61,14 +82,14 @@ function getMostTrackedCities(billsData) {
 }
 
 // Endpoint to get most tracked bills
-app.get('/api/most-tracked-bills', (req, res) => {
+app.get('/api/most_tracked_bills', (req, res) => {
   const billsData = readBillsData();
   const mostTrackedBills = getMostTrackedBills(billsData);
   res.json(mostTrackedBills);
 });
 
 // Endpoint to get most tracked cities
-app.get('/api/most-tracked-cities', (req, res) => {
+app.get('/api/most_tracked_cities', (req, res) => {
   const billsData = readBillsData();
   const mostTrackedCities = getMostTrackedCities(billsData);
   res.json(mostTrackedCities);
