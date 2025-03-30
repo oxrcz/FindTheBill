@@ -18,20 +18,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
-      data.forEach(bill => {
+      data.forEach((bill, index) => {
         const row = billsTableBody.insertRow();
         const serialCell = row.insertCell(0);
         const trackedCountCell = row.insertCell(1);
 
-        serialCell.textContent = bill.serialNumber;
+        const link = document.createElement('a');
+        link.href = `/bill/${bill.serialNumber}`;
+        link.textContent = bill.serialNumber;
+        serialCell.appendChild(link);
+        
         trackedCountCell.textContent = bill.trackedCount;
+        
+        // Alternate row colors
+        row.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
       });
     })
     .catch(error => {
       const billsTable = document.getElementById('billsTable');
       const errorDiv = document.createElement('div');
-      errorDiv.style.color = 'red';
-      errorDiv.style.padding = '10px';
+      errorDiv.className = 'error-message';
       errorDiv.textContent = `Error loading tracked bills: ${error.message}`;
       billsTable.parentNode.insertBefore(errorDiv, billsTable);
     });
