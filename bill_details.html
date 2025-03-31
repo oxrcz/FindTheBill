@@ -1,29 +1,123 @@
 
-{
-  "MD41805466C": {
-    "trackedHistory": [
-      {
-        "city": "Sloatsburgh",
-        "state": "NY",
-        "date": "2025-03-30"
-      }
-    ],
-    "lastTracked": "2025-03-30",
-    "BillValue": 5,
-    "trackedCount": 1
-  }
-}
-{
-  "BILL_TEMPLATE": {
-    "trackedHistory": [
-      {
-        "city": "Unknown City",
-        "state": "Unknown State",
-        "date": "YYYY-MM-DD"
-      }
-    ],
-    "lastTracked": "YYYY-MM-DD",
-    "BillValue": 5,
-    "trackedCount": 0
-  }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find The Bill - Bill Details</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        nav {
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        nav a {
+            color: #0066cc;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #004999;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        #historyContainer {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .history-item {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .history-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .no-history {
+            text-align: center;
+            color: #6c757d;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/most_tracked_bills">Most Tracked Bills</a>
+        <a href="/most_tracked_cities">Most Tracked Cities</a>
+        <a href="/about">About</a>
+    </nav>
+
+    <h1 id="billSerial"></h1>
+    <div id="historyContainer"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const serialNumber = urlParams.get('serial');
+            
+            if (!serialNumber) {
+                window.location.href = '/';
+                return;
+            }
+
+            document.getElementById('billSerial').textContent = `Bill Serial: ${serialNumber}`;
+
+            fetch(`/api/bill/${serialNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('historyContainer');
+                    if (data.trackedHistory && data.trackedHistory.length > 0) {
+                        data.trackedHistory.forEach(entry => {
+                            const historyItem = document.createElement('div');
+                            historyItem.className = 'history-item';
+                            historyItem.textContent = `Location: ${entry.city}, ${entry.state} - Date: ${new Date(entry.date).toLocaleDateString()}`;
+                            container.appendChild(historyItem);
+                        });
+                    } else {
+                        container.innerHTML = '<div class="no-history">No tracking history found for this bill.</div>';
+                    }
+                })
+                .catch(error => {
+                    const container = document.getElementById('historyContainer');
+                    container.innerHTML = `<div class="no-history">Error loading bill details: ${error.message}</div>`;
+                });
+        });
+    </script>
+</body>
+</html>
