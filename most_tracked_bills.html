@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,6 +96,13 @@
             text-align: center;
             border: 1px solid #f5c6cb;
         }
+
+        .loading-message {
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #0066cc;
+        }
     </style>
 </head>
 <body>
@@ -106,8 +112,9 @@
         <a href="/most_tracked_cities">Most Tracked Cities</a>
         <a href="/about">About</a>
     </nav>
-    
+
     <h1>Top 10 Most Tracked Bills</h1>
+    <div id="loadingMessage" class="loading-message">Loading tracked bills...</div>
     <table id="billsTable">
         <thead>
             <tr>
