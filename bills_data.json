@@ -9,6 +9,7 @@
       }
     ],
     "lastTracked": "2025-03-30",
+    "BillValue": 5,
     "trackedCount": 1
   }
 }
@@ -22,6 +23,7 @@
       }
     ],
     "lastTracked": "YYYY-MM-DD",
+    "BillValue": 5,
     "trackedCount": 0
   }
 }
