@@ -22,13 +22,15 @@ function renderTable(data) {
   data.forEach((bill, index) => {
     const row = billsTableBody.insertRow();
     const serialCell = row.insertCell(0);
-    const trackedCountCell = row.insertCell(1);
+    const valueCell = row.insertCell(1);
+    const trackedCountCell = row.insertCell(2);
 
     const link = document.createElement('a');
     link.href = `/bill/${bill.serial_number}`;
     link.textContent = bill.serial_number;
     serialCell.appendChild(link);
 
+    valueCell.textContent = bill.billValue ? `$${bill.billValue}` : 'N/A';
     trackedCountCell.textContent = bill.tracked_count;
     row.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
   });
@@ -41,41 +43,63 @@ denominationFilter.addEventListener('change', async () => {
   try {
     if (selectedValue === 'all') {
       renderTable(billsData);
-    } else {
-      const filteredData = billsData.filter(bill => {
-        // Fetch the bill value from the server
-        return fetch(`/api/bill/${bill.serial_number}`)
-          .then(response => response.json())
-          .then(data => data.billValue === parseInt(selectedValue));
-      });
-      
-      // Wait for all promises to resolve
-      const resolvedData = await Promise.all(
-        billsData.map(async (bill) => {
+      return;
+    }
+    
+    const resolvedData = await Promise.all(
+      billsData.map(async (bill) => {
+        try {
           const response = await fetch(`/api/bill/${bill.serial_number}`);
+          if (!response.ok) throw new Error('Failed to fetch bill data');
           const data = await response.json();
           return {
             ...bill,
             billValue: data.billValue
           };
-        })
-      );
-      
-      const filtered = resolvedData.filter(bill => bill.billValue === parseInt(selectedValue));
-      renderTable(filtered);
-    }
+        } catch (err) {
+          console.error(`Error fetching bill ${bill.serial_number}:`, err);
+          return { ...bill, billValue: null };
+        }
+      })
+    );
+    
+    const filtered = resolvedData.filter(bill => {
+      try {
+        return bill.billValue === parseInt(selectedValue);
+      } catch (err) {
+        console.error(`Error filtering bill ${bill.serial_number}:`, err);
+        return false;
+      }
+    });
+    renderTable(filtered);
   } catch (error) {
     console.error('Error filtering data:', error);
+    billsTableBody.innerHTML = '<tr><td colspan="2">Error loading bills data</td></tr>';
   }
 });
 
 // Fetch the data immediately
 fetch('/api/most_tracked_bills')
-  .then(response => {
+  .then(async response => {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return response.json();
+    const data = await response.json();
+    // Get bill values from valid bills
+    const billsWithValues = await Promise.all(
+      data.map(async bill => {
+        try {
+          const response = await fetch(`/api/valid-bill/${bill.serial_number}`);
+          if (!response.ok) throw new Error('Failed to fetch bill data');
+          const validBill = await response.json();
+          return { ...bill, billValue: validBill.bill_value };
+        } catch (error) {
+          console.error(`Error fetching bill ${bill.serial_number}:`, error);
+          return { ...bill, billValue: null };
+        }
+      })
+    );
+    return billsWithValues;
   })
   .then(data => {
     loadingMessage.remove();
