@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find The Bill - Bill Details</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
             margin: 0;
@@ -40,11 +41,10 @@
             color: #004999;
         }
 
-        h1 {
+        h1, h2 {
             color: #2c3e50;
             margin-bottom: 30px;
             text-align: center;
-            font-size: 2.5em;
         }
 
         #historyContainer {
@@ -73,6 +73,13 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        #map {
+            height: 250px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -86,11 +93,35 @@
     <h1 id="billSerial"></h1>
     <div id="historyContainer"></div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        function initMap(locations) {
+            const map = L.map('map').setView([39.8283, -98.5795], 4);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            if (locations && locations.length > 0) {
+                const markers = locations.map(location => {
+                    if (location.lat && location.lng) {
+                        return L.marker([location.lat, location.lng])
+                            .bindPopup(`${location.city}, ${location.state}`)
+                            .addTo(map);
+                    }
+                    return null;
+                }).filter(marker => marker !== null);
+
+                if (markers.length > 0) {
+                    const group = L.featureGroup(markers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const serialNumber = urlParams.get('serial');
-            
+            const pathParts = window.location.pathname.split('/');
+            const serialNumber = pathParts[pathParts.length - 1];
+
             if (!serialNumber) {
                 window.location.href = '/';
                 return;
@@ -98,24 +129,71 @@
 
             document.getElementById('billSerial').textContent = `Bill Serial: ${serialNumber}`;
 
+            // Create map container
+            const mapDiv = document.createElement('div');
+            mapDiv.id = 'map';
+            document.getElementById('historyContainer').appendChild(mapDiv);
+
             fetch(`/api/bill/${serialNumber}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Bill not found');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     const container = document.getElementById('historyContainer');
+                    
+                    // Add bill value, tracking count and cooldown timer
+                    const infoDiv = document.createElement('h2');
+                    infoDiv.textContent = `Value: $${data.billValue} | Times Tracked: ${data.trackedCount}`;
+                    container.insertBefore(infoDiv, mapDiv);
+
+                    if (data.cooldownSeconds > 0) {
+                        const cooldownDiv = document.createElement('div');
+                        cooldownDiv.className = 'message';
+                        cooldownDiv.style.backgroundColor = '#e9ecef';
+                        cooldownDiv.style.padding = '15px';
+                        cooldownDiv.style.marginBottom = '20px';
+                        cooldownDiv.style.borderRadius = '8px';
+                        cooldownDiv.style.textAlign = 'center';
+                        container.insertBefore(cooldownDiv, mapDiv);
+
+                        let remainingSeconds = data.cooldownSeconds;
+                        const updateTimer = () => {
+                            const minutes = Math.floor(remainingSeconds / 60);
+                            const seconds = remainingSeconds % 60;
+                            cooldownDiv.textContent = `This bill is taking a quick break! You can track it again in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                            if (remainingSeconds <= 0) {
+                                cooldownDiv.style.display = 'none';
+                            }
+                            remainingSeconds--;
+                        };
+                        updateTimer();
+                        const timer = setInterval(updateTimer, 1000);
+                    }
+
                     if (data.trackedHistory && data.trackedHistory.length > 0) {
+                        // Initialize map with locations
+                        initMap(data.trackedHistory);
+
+                        // Create history list
+                        const historyList = document.createElement('div');
                         data.trackedHistory.forEach(entry => {
                             const historyItem = document.createElement('div');
                             historyItem.className = 'history-item';
-                            historyItem.textContent = `Location: ${entry.city}, ${entry.state} - Date: ${new Date(entry.date).toLocaleDateString()}`;
-                            container.appendChild(historyItem);
+                            const timestamp = new Date(entry.timestamp);
+                            historyItem.textContent = `Location: ${entry.city}, ${entry.state} - ${timestamp.toLocaleDateString()} ${timestamp.toLocaleTimeString()}`;
+                            historyList.appendChild(historyItem);
                         });
+                        container.appendChild(historyList);
                     } else {
                         container.innerHTML = '<div class="no-history">No tracking history found for this bill.</div>';
                     }
                 })
                 .catch(error => {
                     const container = document.getElementById('historyContainer');
-                    container.innerHTML = `<div class="no-history">Error loading bill details: ${error.message}</div>`;
+                    container.innerHTML = `<div class="no-history">Error: ${error.message}</div>`;
                 });
         });
     </script>
