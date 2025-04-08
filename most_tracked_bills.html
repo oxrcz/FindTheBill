@@ -114,6 +114,16 @@
     </nav>
 
     <h1>Top 10 Most Tracked Bills</h1>
+    <div class="filter-section">
+        <label for="denominationFilter">Filter by denomination: </label>
+        <select id="denominationFilter">
+            <option value="all">All</option>
+            <option value="1">$1</option>
+            <option value="5">$5</option>
+            <option value="10">$10</option>
+            <option value="20">$20</option>
+        </select>
+    </div>
     <div id="loadingMessage" class="loading-message">Loading tracked bills...</div>
     <table id="billsTable">
         <thead>
