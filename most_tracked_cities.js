@@ -1,4 +1,6 @@
 
+const citiesTableBody = document.getElementById('citiesTable').getElementsByTagName('tbody')[0];
+
 fetch('/api/most_tracked_cities')
   .then(response => {
     if (!response.ok) {
@@ -7,8 +9,6 @@ fetch('/api/most_tracked_cities')
     return response.json();
   })
   .then(data => {
-    const citiesTableBody = document.getElementById('citiesTable').getElementsByTagName('tbody')[0];
-
     if (!data || data.length === 0) {
       const row = citiesTableBody.insertRow();
       const cell = row.insertCell(0);
@@ -17,20 +17,29 @@ fetch('/api/most_tracked_cities')
       return;
     }
 
-    data.forEach(city => {
-        const row = citiesTableBody.insertRow();
-        const cityCell = row.insertCell(0);
-        const trackedCountCell = row.insertCell(1);
+    data.forEach((city, index) => {
+      const row = citiesTableBody.insertRow();
+      const cityCell = row.insertCell(0);
+      const trackedCountCell = row.insertCell(1);
 
-        cityCell.textContent = city.city;
-        trackedCountCell.textContent = city.trackedCount;
+      cityCell.textContent = `${city.city}, ${city.state}`;
+      trackedCountCell.textContent = city.tracked_count;
+      
+      // Alternate row colors
+      row.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
     });
   })
   .catch(error => {
-    const citiesTable = document.getElementById('citiesTable');
-    const errorDiv = document.createElement('div');
-    errorDiv.style.color = 'red';
-    errorDiv.style.padding = '10px';
-    errorDiv.textContent = `Error loading tracked cities: ${error.message}`;
-    citiesTable.parentNode.insertBefore(errorDiv, citiesTable);
+    // Clear table body
+    citiesTableBody.innerHTML = '';
+    
+    // Add error row
+    const row = citiesTableBody.insertRow();
+    const cell = row.insertCell(0);
+    cell.colSpan = 2;
+    cell.style.color = '#721c24';
+    cell.style.backgroundColor = '#f8d7da';
+    cell.style.padding = '15px';
+    cell.style.textAlign = 'center';
+    cell.textContent = `Error loading tracked cities: ${error.message}`;
   });
