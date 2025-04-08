@@ -27,7 +27,20 @@ app.get('/bill/:serial', (req, res) => {
   res.sendFile(path.join(__dirname, 'bill_details.html'));
 });
 
-// API endpoint to get bill details
+// API endpoints for bill data
+
+
+app.get('/api/valid-bill/:serial', async (req, res) => {
+  try {
+    const bill = await db.getValidBill(req.params.serial);
+    if (!bill) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+    res.json(bill);
+  } catch (error) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -43,50 +56,51 @@ app.get('/api/bill/:serial', async (req, res) => {
   const serialNumber = req.params.serial;
 
   try {
-    const billValue = await new Promise((resolve, reject) => {
-      db.get('SELECT bill_value FROM valid_bills WHERE serial_number = ?', [serialNumber], (err, row) => {
-        if (err) reject(err);
-        else resolve(row ? row.bill_value : null);
-      });
-    });
+    const validBill = await db.getValidBill(serialNumber);
+    if (!validBill) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
 
-    const rows = await new Promise((resolve, reject) => {
-      db.all(
-        'SELECT * FROM tracked_bills WHERE serial_number = ? ORDER BY timestamp DESC',
-        [serialNumber],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        }
-      );
-    });
-
-    if (rows.length > 0) {
+    const trackedHistory = await db.getBillHistory(serialNumber);
+    const lastTracked = await db.getLastTrackedBill(serialNumber);
+    
+    let cooldownSeconds = 0;
+    if (lastTracked) {
+      const now = new Date();
+      const lastTrackedTime = new Date(lastTracked.timestamp);
+      const minutesSinceLastTrack = (now - lastTrackedTime) / (1000 * 60);
+      if (minutesSinceLastTrack < 30) {
+        cooldownSeconds = Math.ceil((30 - minutesSinceLastTrack) * 60);
+      }
+    }
+    
+    if (trackedHistory.length > 0) {
       const geocoder = require('node-geocoder')({
         provider: 'openstreetmap'
       });
 
-      const trackedHistory = await Promise.all(rows.map(async (row) => {
+      const enrichedHistory = await Promise.all(trackedHistory.map(async (entry) => {
         try {
-          const geoData = await geocoder.geocode(`${row.city}, ${row.state}`);
+          const geoData = await geocoder.geocode(`${entry.city}, ${entry.state}`);
           if (geoData && geoData[0]) {
             return {
-              ...row,
+              ...entry,
               lat: geoData[0].latitude,
               lng: geoData[0].longitude
             };
           }
-          return row;
+          return entry;
         } catch (error) {
           console.error('Geocoding error:', error);
-          return row;
+          return entry;
         }
       }));
 
       res.json({
-        trackedHistory,
-        trackedCount: rows.length,
-        billValue
+        trackedHistory: enrichedHistory,
+        trackedCount: trackedHistory.length,
+        billValue: validBill.bill_value,
+        cooldownSeconds: cooldownSeconds
       });
     } else {
       res.status(404).json({ error: 'Bill not found' });
@@ -97,101 +111,82 @@ app.get('/api/bill/:serial', async (req, res) => {
 });
 
 // Endpoint to track a bill
-app.post('/api/track-bill', (req, res) => {
+app.post('/api/track-bill', async (req, res) => {
   const { serialNumber, city, state, date } = req.body;
 
   if (!serialNumber || !city || !state || !date) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  // First check if it's a valid bill
-  db.get('SELECT * FROM valid_bills WHERE serial_number = ?', [serialNumber], (err, validBill) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-
+  try {
+    // First check if it's a valid bill
+    const validBill = await db.getValidBill(serialNumber);
+    
     if (!validBill) {
       console.log('Invalid bill attempt:', serialNumber);
-      console.log('Valid bills in database:', validBill);
       return res.status(400).json({ error: 'This bill serial number is not registered in our system. Please make sure the bill has FindTheBill.net written on it.' });
     }
 
-    // Check cooldown (5 minutes)
-    db.get(
-      'SELECT timestamp FROM tracked_bills WHERE serial_number = ? ORDER BY timestamp DESC LIMIT 1',
-      [serialNumber],
-      (err, lastTracked) => {
-        if (err) {
-          return res.status(500).json({ error: 'Database error' });
-        }
+    // Check cooldown (30 minutes)
+    const lastTracked = await db.getLastTrackedBill(serialNumber);
+    
+    const now = new Date();
+    let cooldownRemaining = 0;
+    
+    if (lastTracked) {
+      const lastTrackedTime = new Date(lastTracked.timestamp);
+      const minutesSinceLastTrack = (now - lastTrackedTime) / (1000 * 60);
 
-        const now = new Date();
-        if (lastTracked) {
-          const lastTrackedTime = new Date(lastTracked.timestamp);
-          const minutesSinceLastTrack = (now - lastTrackedTime) / (1000 * 60);
-
-          if (minutesSinceLastTrack < 5) {
-            const minutesRemaining = Math.ceil(5 - minutesSinceLastTrack);
-            return res.status(429).json({ 
-              error: `Please wait ${minutesRemaining} minutes before tracking this bill again` 
-            });
-          }
-        }
-
-        // Insert new tracking entry
-        const timestamp = new Date().toISOString();
-        db.run(
-          'INSERT INTO tracked_bills (serial_number, city, state, date, timestamp) VALUES (?, ?, ?, ?, ?)',
-          [serialNumber, city, state, date, timestamp],
-          (err) => {
-            if (err) {
-              return res.status(500).json({ error: 'Error tracking bill' });
-            }
-            res.json({ message: 'Bill tracked successfully', redirect: `/bill/${serialNumber}` });
-          }
-        );
+      if (minutesSinceLastTrack < 30) {
+        cooldownRemaining = Math.ceil(30 - minutesSinceLastTrack);
+        // Still redirect to view the bill's history, but don't track it
+        return res.json({ 
+          message: 'Viewing bill history',
+          cooldownSeconds: cooldownRemaining * 60,
+          redirect: `/bill/${serialNumber}` 
+        });
       }
-    );
-  });
+    }
+
+    // Track the bill if no cooldown
+    const trackedBill = await db.trackBill({ serialNumber, city, state, date });
+    res.json({ 
+      message: 'Bill tracked successfully', 
+      cooldownSeconds: 1800, // 30 minutes in seconds
+      redirect: `/bill/${serialNumber}` 
+    });
+  } catch (error) {
+    console.error('Error tracking bill:', error);
+    res.status(500).json({ error: 'Error tracking bill' });
+  }
 });
 
 // API endpoints for most tracked bills and cities
-app.get('/api/most_tracked_bills', (req, res) => {
-  db.all(`
-    SELECT serial_number, COUNT(*) as tracked_count 
-    FROM tracked_bills 
-    GROUP BY serial_number 
-    ORDER BY tracked_count DESC 
-    LIMIT 10
-  `, (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    res.json(rows);
-  });
+app.get('/api/most_tracked_bills', async (req, res) => {
+  try {
+    const mostTrackedBills = await db.getMostTrackedBills();
+    res.json(mostTrackedBills);
+  } catch (error) {
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
-app.get('/api/most_tracked_cities', (req, res) => {
-  db.all(`
-    SELECT city, state, COUNT(*) as tracked_count 
-    FROM tracked_bills 
-    GROUP BY city, state 
-    ORDER BY tracked_count DESC
-  `, (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    res.json(rows);
-  });
+app.get('/api/most_tracked_cities', async (req, res) => {
+  try {
+    const mostTrackedCities = await db.getMostTrackedCities();
+    res.json(mostTrackedCities);
+  } catch (error) {
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 app.get('/api/get-location', async (req, res) => {
   try {
     const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(',')[0] : req.socket.remoteAddress;
-    const cleanIp = ip.replace('::ffff:', '');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+    const cleanIp = ip.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
     
-    const response = await axios.get(`https://ipinfo.io/${cleanIp}/json`);
+    const response = await axios.get(`https://ipapi.co/${cleanIp}/json/`);
     const data = response.data;
     
     if (data.city && data.region) {
