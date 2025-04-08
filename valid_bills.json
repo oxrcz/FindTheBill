@@ -2,6 +2,10 @@
 {
   "valid_bills": [
     {"serial_number": "MD41805466C", "bill_value": 5},
-    {"serial_number": "PG11078485C", "bill_value": 20}
+    {"serial_number": "K57147111D", "bill_value": 1},
+    {"serial_number": "PG11078485C", "bill_value": 20},
+    {"serial_number": "NL64963442A", "bill_value": 10}
+    {"serial_number": "K34398102C", "bill_value": 1}
+    {"serial_number": "F56589590B", "bill_value": 1}
   ]
 }
