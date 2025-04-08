@@ -199,8 +199,20 @@
         document.getElementById('billForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const serialNumber = document.getElementById('serialNumber').value;
+            const serialNumber = document.getElementById('serialNumber').value.trim().toUpperCase();
             const date = document.getElementById('date').value;
+            
+            // First check if it's a valid bill
+            const validBillResponse = await fetch(`/api/valid-bill/${serialNumber}`);
+            const validBillData = await validBillResponse.json();
+            
+            if (!validBillData || validBillData.error) {
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.textContent = 'This bill serial number is not registered in our system. Please make sure the bill has FindTheBill.net written on it.';
+                errorMessage.style.display = 'block';
+                document.getElementById('successMessage').style.display = 'none';
+                return;
+            }
 
             const location = await getLocation();
             const city = location.city;
@@ -226,11 +238,11 @@
                 errorMessage.style.display = 'block';
                 successMessage.style.display = 'none';
                 
-                if (data.secondsRemaining) {
+                if (data.cooldownSeconds) {
                     window.location.href = `/bill/${serialNumber}`;
                     return;
                 }
-                throw new Error(data.error);
+                return;
             }
 
             document.getElementById('successMessage').style.display = 'none';
