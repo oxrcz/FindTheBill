@@ -1,0 +1,7 @@
+
+{
+  "valid_bills": [
+    {"serial_number": "MD41805466C", "bill_value": 5},
+    {"serial_number": "PG11078485C", "bill_value": 20}
+  ]
+}
