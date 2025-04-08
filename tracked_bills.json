@@ -1,0 +1,22 @@
+{
+  "tracked_bills": [
+    {
+      "id": 1,
+      "serialNumber": "MD41805466C",
+      "city": "Tuxedo Park",
+      "state": "New York",
+      "date": "2025-04-08",
+      "times_tracked": 1,
+      "timestamp": "2025-04-08T22:41:27.815Z"
+    },
+    {
+      "id": 2,
+      "serialNumber": "NL64963442A",
+      "city": "Tuxedo Park",
+      "state": "New York",
+      "date": "2025-04-08",
+      "times_tracked": 1,
+      "timestamp": "2025-04-08T23:02:13.618Z"
+    }
+  ]
+}
