@@ -7,20 +7,35 @@ FindTheBill.net is a web application that tracks the movement of currency bills 
 - View bill tracking history (cities and states)
 - See the most tracked bills
 - Discover the most tracked cities
-- Prevents excessive tracking using a 1-day cooldown per bill
+- Prevents excessive tracking using a cooldown period per bill
 
 ## Project Structure
 ```
 /findthebill
-  ├── bills_data.json             # Stores bill tracking data
+  ├── bills.db                    # SQLite database for bill tracking
+  ├── database.js                 # Database configuration and setup
   ├── index.html                  # Homepage for entering bill serial numbers
   ├── server.js                   # Backend server handling requests
   ├── package.json                # Project dependencies and scripts
   ├── most_tracked_bills.html     # Displays most tracked bills
   ├── most_tracked_cities.html    # Displays most tracked cities
-  ├── most_tracked_bills.js       # Frontend logic for most tracked bills page
-  ├── most_tracked_cities.js      # Frontend logic for most tracked cities page
+  └── valid_bills.json           # List of valid bill serial numbers
 ```
+
+## Technical Details
+- Built with Node.js and Express
+- Uses SQLite for data storage
+- Implements geolocation for automatic city detection
+- Interactive map visualization using Leaflet
+- Responsive design for both desktop and mobile devices
+
+## Usage
+1. Enter a bill's serial number that has "FindTheBill.net" written on it
+2. Your location will be automatically detected
+3. Track the bill to contribute to its journey
+4. View the bill's history on an interactive map
+
+For questions or support, contact: contactfindthebill@gmail.com
 
 ## Installation
 Follow these steps to run the project locally:
@@ -54,11 +69,3 @@ Feel free to submit issues and pull requests for improvements!
 
 ## License
 This project is licensed under the MIT License.
-
----
-
-**Note:** Ensure `bills_data.json` exists and is writable to store tracking data. If not, create an empty JSON file:
-```json
-{}
-```
-
