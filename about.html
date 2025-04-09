@@ -4,56 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Find The Bill</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-            padding: 20px;
-        }
-
-        nav {
-            background-color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-
-        nav a {
-            color: #0066cc;
-            text-decoration: none;
-            margin-right: 20px;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        nav a:hover {
-            color: #004999;
-        }
-
+        /* Additional styles specific to about.html */
         .content {
             max-width: 800px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
+        
         p {
             margin-bottom: 15px;
         }
@@ -61,11 +19,41 @@
 </head>
 <body>
     <nav>
-        <a href="/">Home</a>
-        <a href="/most_tracked_bills">Most Tracked Bills</a>
-        <a href="/most_tracked_cities">Most Tracked Cities</a>
-        <a href="/about">About</a>
+        <button class="menu-button" style="display: none;">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/most_tracked_bills">Most Tracked Bills</a>
+            <a href="/most_tracked_cities">Most Tracked Cities</a>
+            <a href="/about">About</a>
+        </div>
     </nav>
+    <script>
+        const menuButton = document.querySelector('.menu-button');
+        const navLinks = document.querySelector('.nav-links');
+        
+        function toggleMenu() {
+            navLinks.classList.toggle('active');
+        }
+        
+        if (window.innerWidth <= 768) {
+            menuButton.style.display = 'block';
+            menuButton.addEventListener('click', toggleMenu);
+        }
+        
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                menuButton.style.display = 'block';
+                menuButton.addEventListener('click', toggleMenu);
+            } else {
+                menuButton.style.display = 'none';
+                navLinks.classList.remove('active');
+            }
+        });
+    </script>
 
     <div class="content">
         <h1>About FindTheBill.net</h1>
