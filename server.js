@@ -209,29 +209,65 @@ app.get('/api/get-location', async (req, res) => {
     
     console.log('Attempting location lookup for IP:', cleanIp);
     
-    let response;
+    let location;
+    
+    // Try multiple services in sequence until we get a good result
     try {
-      response = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
-        timeout: 8000,
+      // Try ipapi.co first
+      const ipapiResponse = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
+        timeout: 5000,
         headers: {
           'User-Agent': 'FindTheBill.net/2.0',
           'Accept': 'application/json'
         }
       });
+      
+      if (!ipapiResponse.data.error && ipapiResponse.data.city && ipapiResponse.data.region) {
+        location = {
+          city: ipapiResponse.data.city,
+          state: ipapiResponse.data.region
+        };
+      }
     } catch (error) {
-      console.log('Primary geolocation failed, trying fallback');
-      response = await axios.get(`https://ipwho.is/${cleanIp}`);
+      console.log('ipapi.co failed:', error.message);
     }
-    
-    if (response.data.error) {
-      throw new Error(response.data.reason || 'IP lookup failed');
+
+    // If ipapi failed, try ipwhois
+    if (!location) {
+      try {
+        const ipwhoisResponse = await axios.get(`https://ipwhois.app/json/${cleanIp}`, {
+          timeout: 5000
+        });
+        
+        if (ipwhoisResponse.data.city && ipwhoisResponse.data.region) {
+          location = {
+            city: ipwhoisResponse.data.city,
+            state: ipwhoisResponse.data.region
+          };
+        }
+      } catch (error) {
+        console.log('ipwhois failed:', error.message);
+      }
     }
-    
-    if (response.data.city && response.data.region) {
-      res.json({
-        city: response.data.city,
-        state: response.data.region
-      });
+
+    // Last resort - try ipapi.com
+    if (!location) {
+      try {
+        const ipapicomResponse = await axios.get(`https://api.ipapi.com/api/${cleanIp}?access_key=YOUR_API_KEY`);
+        
+        if (ipapicomResponse.data.city && ipapicomResponse.data.region_name) {
+          location = {
+            city: ipapicomResponse.data.city,
+            state: ipapicomResponse.data.region_name
+          };
+        }
+      } catch (error) {
+        console.log('ipapi.com failed:', error.message);
+      }
+    }
+
+    if (location) {
+      res.json(location);
     } else {
       console.log('No location data for IP:', cleanIp);
       res.status(500).json({
