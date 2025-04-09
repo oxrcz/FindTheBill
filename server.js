@@ -182,103 +182,26 @@ app.get('/api/most_tracked_cities', async (req, res) => {
 
 app.get('/api/get-location', async (req, res) => {
   try {
-    console.log('Headers received:', req.headers);
-    
-    // Get IP from headers in order of reliability
-    const ip = req.headers['cf-connecting-ip'] || // Cloudflare
-              req.headers['x-real-ip'] || // Nginx
-              req.headers['x-forwarded-for']?.split(',')[0].trim() || 
-              req.headers['x-client-ip'] ||
-              req.socket.remoteAddress;
-    
-    console.log('IP detection process:', {
-      cfConnectingIp: req.headers['cf-connecting-ip'],
-      xRealIp: req.headers['x-real-ip'],
-      xForwardedFor: req.headers['x-forwarded-for'],
-      xClientIp: req.headers['x-client-ip'],
-      socketRemoteAddress: req.socket.remoteAddress,
-      finalSelectedIp: ip
-    });
-               
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
     const cleanIp = ip?.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
-    
+
     if (!cleanIp || cleanIp === '127.0.0.1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.')) {
-      console.log('Invalid IP detected:', cleanIp);
       return res.status(500).json({ error: 'Cannot detect location' });
     }
+
+    const response = await axios.get(`https://api.ipdata.co/${cleanIp}?api-key=${process.env.IPDATA_API_KEY}`);
     
-    console.log('Attempting location lookup for IP:', cleanIp);
-    
-    let location;
-    
-    // Try multiple services in sequence until we get a good result
-    try {
-      // Try ipapi.co first
-      const ipapiResponse = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
-        timeout: 5000,
-        headers: {
-          'User-Agent': 'FindTheBill.net/2.0',
-          'Accept': 'application/json'
-        }
+    if (response.data.city && response.data.region) {
+      res.json({
+        city: response.data.city,
+        state: response.data.region
       });
-      
-      if (!ipapiResponse.data.error && ipapiResponse.data.city && ipapiResponse.data.region) {
-        location = {
-          city: ipapiResponse.data.city,
-          state: ipapiResponse.data.region
-        };
-      }
-    } catch (error) {
-      console.log('ipapi.co failed:', error.message);
-    }
-
-    // If ipapi failed, try ipwhois
-    if (!location) {
-      try {
-        const ipwhoisResponse = await axios.get(`https://ipwhois.app/json/${cleanIp}`, {
-          timeout: 5000
-        });
-        
-        if (ipwhoisResponse.data.city && ipwhoisResponse.data.region) {
-          location = {
-            city: ipwhoisResponse.data.city,
-            state: ipwhoisResponse.data.region
-          };
-        }
-      } catch (error) {
-        console.log('ipwhois failed:', error.message);
-      }
-    }
-
-    // Last resort - try ipapi.com
-    if (!location) {
-      try {
-        const ipapicomResponse = await axios.get(`https://api.ipapi.com/api/${cleanIp}?access_key=YOUR_API_KEY`);
-        
-        if (ipapicomResponse.data.city && ipapicomResponse.data.region_name) {
-          location = {
-            city: ipapicomResponse.data.city,
-            state: ipapicomResponse.data.region_name
-          };
-        }
-      } catch (error) {
-        console.log('ipapi.com failed:', error.message);
-      }
-    }
-
-    if (location) {
-      res.json(location);
     } else {
-      console.log('No location data for IP:', cleanIp);
-      res.status(500).json({
-        error: 'Location data unavailable'
-      });
+      res.status(500).json({ error: 'Location data unavailable' });
     }
   } catch (error) {
     console.error('Error fetching location:', error.message);
-    res.status(500).json({
-      error: 'Could not detect location'
-    });
+    res.status(500).json({ error: 'Could not detect location' });
   }
 });
 
