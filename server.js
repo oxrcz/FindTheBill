@@ -192,133 +192,16 @@ app.get('/api/most_tracked_cities', async (req, res) => {
 const locationCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
+const locationService = require('./location_service');
+
 app.get('/api/get-location', async (req, res) => {
   try {
-    const NodeGeocoder = require('node-geocoder');
-    const geoip = require('geoip-lite');
-    
-    // Get IP address handling proxies
     const ip = req.headers['x-forwarded-for']?.split(',').shift().trim() || 
                req.headers['x-real-ip'] || 
                req.socket.remoteAddress;
-               
-    // Check cache first
-    if (locationCache.has(ip)) {
-      const cached = locationCache.get(ip);
-      if (Date.now() - cached.timestamp < CACHE_DURATION) {
-        return res.json(cached.data);
-      }
-      locationCache.delete(ip);
-    }
-
-    // Try ipdata.co with rate limit handling
-    try {
-      const ipdataResponse = await axios.get(`https://api.ipdata.co/${ip}?api-key=test`, {
-        timeout: 3000,
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (ipdataResponse.data?.city && ipdataResponse.data?.region) {
-        const locationData = {
-          city: ipdataResponse.data.city,
-          state: ipdataResponse.data.region
-        };
-        locationCache.set(ip, { data: locationData, timestamp: Date.now() });
-        return res.json(locationData);
-      }
-    } catch (ipdataError) {
-      console.log('ipdata.co error:', ipdataError.message);
-      if (ipdataError.response?.status === 429) {
-        console.log('Rate limit reached for ipdata.co');
-      }
-    }
-
-    // 2. Try ipinfo.io as second option
-    try {
-      const ipinfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${process.env.IPINFO_TOKEN}`);
-      if (ipinfoResponse.data?.city && ipinfoResponse.data?.region) {
-        return res.json({
-          city: ipinfoResponse.data.city,
-          state: ipinfoResponse.data.region
-        });
-      }
-    } catch (ipinfoError) {
-      console.log('ipinfo.io fallback:', ipinfoError.message);
-    }
     
-    // State abbreviation mapping
-    const stateMap = {
-      'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
-      'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
-      'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
-      'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
-      'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
-      'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
-      'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
-      'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
-      'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
-      'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
-      'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
-      'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
-      'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
-    };
-
-    // Try geoip-lite as second fallback (faster than geocoding)
-    const geo = geoip.lookup(ip);
-    if (geo?.city && geo?.region) {
-      const locationData = {
-        city: geo.city,
-        state: stateMap[geo.region] || geo.region
-      };
-      locationCache.set(ip, { data: locationData, timestamp: Date.now() });
-      return res.json(locationData);
-    }
-
-    // Try OpenStreetMap as final fallback with error handling
-    try {
-      const geocoder = NodeGeocoder({
-        provider: 'openstreetmap',
-        timeout: 5000
-      });
-      
-      // First try to get location from IP
-      const geo = geoip.lookup(ip);
-      if (geo?.ll) {
-        const results = await geocoder.reverse({ lat: geo.ll[0], lon: geo.ll[1] });
-        if (results?.[0]) {
-          const location = results[0];
-          const locationData = {
-            city: location.city || geo.city || "New York",
-            state: stateMap[location.state] || stateMap[geo.region] || "New York"
-          };
-          locationCache.set(ip, { data: locationData, timestamp: Date.now() });
-          return res.json(locationData);
-        }
-      }
-      
-      // Fallback to default coordinates if IP geolocation fails
-      const results = await geocoder.reverse({ lat: 40.7128, lon: -74.0060 });
-      if (results?.[0]) {
-        const location = results[0];
-        const locationData = {
-          city: location.city || "New York",
-          state: stateMap[location.state] || "New York"
-        };
-        locationCache.set(ip, { data: locationData, timestamp: Date.now() });
-        return res.json(locationData);
-      }
-    } catch (geocoderError) {
-      console.log('OpenStreetMap error:', geocoderError.message);
-    }
-
-    // Default fallback with cache
-    const defaultLocation = {
-      city: "New York",
-      state: "New York"
-    };
-    locationCache.set(ip, { data: defaultLocation, timestamp: Date.now() });
-    res.json(defaultLocation);
-
+    const location = await locationService.getLocation(ip);
+    res.json(location);
   } catch (error) {
     console.error('Location detection error:', error);
     res.status(500).json({
