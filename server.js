@@ -182,22 +182,27 @@ app.get('/api/most_tracked_cities', async (req, res) => {
 
 app.get('/api/get-location', async (req, res) => {
   try {
-    // Get IP from various headers
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
-               req.headers['x-real-ip'] || 
-               req.headers['x-client-ip'] ||
-               req.socket.remoteAddress;
+    // Get IP from headers in order of reliability
+    const ip = req.headers['cf-connecting-ip'] || // Cloudflare
+              req.headers['x-real-ip'] || // Nginx
+              req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+              req.headers['x-client-ip'] ||
+              req.socket.remoteAddress;
                
-    const cleanIp = ip.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
+    const cleanIp = ip?.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
     
-    if (cleanIp === '127.0.0.1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.')) {
-      return res.status(500).json({ error: 'Cannot detect location for local IPs' });
+    if (!cleanIp || cleanIp === '127.0.0.1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.')) {
+      console.log('Invalid IP detected:', cleanIp);
+      return res.status(500).json({ error: 'Cannot detect location' });
     }
     
+    console.log('Attempting location lookup for IP:', cleanIp);
+    
     const response = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
-      timeout: 5000,
+      timeout: 8000,
       headers: {
-        'User-Agent': 'FindTheBill.net/2.0'
+        'User-Agent': 'FindTheBill.net/2.0',
+        'Accept': 'application/json'
       }
     });
     
