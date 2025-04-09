@@ -182,22 +182,38 @@ app.get('/api/most_tracked_cities', async (req, res) => {
 
 app.get('/api/get-location', async (req, res) => {
   try {
-    const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+    // Get IP from various headers
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+               req.headers['x-real-ip'] || 
+               req.headers['x-client-ip'] ||
+               req.socket.remoteAddress;
+               
     const cleanIp = ip.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
     
-    const response = await axios.get(`https://ipapi.co/${cleanIp}/json/`);
-    const data = response.data;
+    if (cleanIp === '127.0.0.1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.')) {
+      return res.status(500).json({ error: 'Cannot detect location for local IPs' });
+    }
     
-    if (data.city && data.region) {
+    const response = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'FindTheBill.net/2.0'
+      }
+    });
+    
+    if (response.data.error) {
+      throw new Error(response.data.reason || 'IP lookup failed');
+    }
+    
+    if (response.data.city && response.data.region) {
       res.json({
-        city: data.city,
-        state: data.region
+        city: response.data.city,
+        state: response.data.region
       });
     } else {
-      console.log('Could not detect location for IP:', cleanIp);
+      console.log('No location data for IP:', cleanIp);
       res.status(500).json({
-        error: 'Could not detect location'
+        error: 'Location data unavailable'
       });
     }
   } catch (error) {
