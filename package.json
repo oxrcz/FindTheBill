@@ -1,6 +1,6 @@
 {
   "name": "findthebill",
-  "version": "2.0.2",
+  "version": "2.2.0",
   "description": "Track bills by serial number and geolocation.",
   "main": "server.js",
   "scripts": {
