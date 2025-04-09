@@ -79,22 +79,30 @@ app.get('/api/bill/:serial', async (req, res) => {
         provider: 'openstreetmap'
       });
 
+      // Add retry logic and better error handling for geocoding
       const enrichedHistory = await Promise.all(trackedHistory.map(async (entry) => {
-        try {
-          const geoData = await geocoder.geocode(`${entry.city}, ${entry.state}`);
-          if (geoData && geoData[0]) {
-            return {
-              ...entry,
-              lat: geoData[0].latitude,
-              lng: geoData[0].longitude
-            };
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const geoData = await geocoder.geocode(`${entry.city}, ${entry.state}, USA`);
+            if (geoData && geoData[0]) {
+              return {
+                ...entry,
+                lat: geoData[0].latitude,
+                lng: geoData[0].longitude,
+                timestamp: entry.timestamp
+              };
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s between retries
+          } catch (error) {
+            console.error(`Geocoding error (attempt ${attempt + 1}/3):`, error.message);
+            if (attempt === 2) return entry; // Return original entry after all retries fail
           }
-          return entry;
-        } catch (error) {
-          console.error('Geocoding error:', error);
-          return entry;
         }
+        return entry;
       }));
+
+      // Sort history by timestamp
+      enrichedHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       res.json({
         trackedHistory: enrichedHistory,
@@ -180,25 +188,49 @@ app.get('/api/most_tracked_cities', async (req, res) => {
   }
 });
 
+// Cache for location results
+const locationCache = new Map();
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+
 app.get('/api/get-location', async (req, res) => {
   try {
     const NodeGeocoder = require('node-geocoder');
     const geoip = require('geoip-lite');
     
-    // Get IP address
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-    
-    // 1. Try ipdata.co first
+    // Get IP address handling proxies
+    const ip = req.headers['x-forwarded-for']?.split(',').shift().trim() || 
+               req.headers['x-real-ip'] || 
+               req.socket.remoteAddress;
+               
+    // Check cache first
+    if (locationCache.has(ip)) {
+      const cached = locationCache.get(ip);
+      if (Date.now() - cached.timestamp < CACHE_DURATION) {
+        return res.json(cached.data);
+      }
+      locationCache.delete(ip);
+    }
+
+    // Try ipdata.co with rate limit handling
     try {
-      const ipdataResponse = await axios.get(`https://api.ipdata.co/${ip}?api-key=test`);
+      const ipdataResponse = await axios.get(`https://api.ipdata.co/${ip}?api-key=test`, {
+        timeout: 3000,
+        headers: { 'Accept': 'application/json' }
+      });
+      
       if (ipdataResponse.data?.city && ipdataResponse.data?.region) {
-        return res.json({
+        const locationData = {
           city: ipdataResponse.data.city,
           state: ipdataResponse.data.region
-        });
+        };
+        locationCache.set(ip, { data: locationData, timestamp: Date.now() });
+        return res.json(locationData);
       }
     } catch (ipdataError) {
-      console.log('ipdata.co fallback:', ipdataError.message);
+      console.log('ipdata.co error:', ipdataError.message);
+      if (ipdataError.response?.status === 429) {
+        console.log('Rate limit reached for ipdata.co');
+      }
     }
 
     // 2. Try ipinfo.io as second option
@@ -231,38 +263,67 @@ app.get('/api/get-location', async (req, res) => {
       'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
     };
 
-    // 3. Try geoip-lite as third fallback
+    // Try geoip-lite as second fallback (faster than geocoding)
     const geo = geoip.lookup(ip);
     if (geo?.city && geo?.region) {
-      return res.json({
+      const locationData = {
         city: geo.city,
         state: stateMap[geo.region] || geo.region
-      });
+      };
+      locationCache.set(ip, { data: locationData, timestamp: Date.now() });
+      return res.json(locationData);
     }
 
-    // Try OpenStreetMap as second fallback
-    const geocoder = NodeGeocoder({
-      provider: 'openstreetmap'
-    });
-    const results = await geocoder.reverse({ lat: 40.7128, lon: -74.0060 });
-    if (results?.[0]) {
-      const location = results[0];
-      return res.json({
-        city: location.city || "New York",
-        state: location.state || "New York"
+    // Try OpenStreetMap as final fallback with error handling
+    try {
+      const geocoder = NodeGeocoder({
+        provider: 'openstreetmap',
+        timeout: 5000
       });
+      
+      // First try to get location from IP
+      const geo = geoip.lookup(ip);
+      if (geo?.ll) {
+        const results = await geocoder.reverse({ lat: geo.ll[0], lon: geo.ll[1] });
+        if (results?.[0]) {
+          const location = results[0];
+          const locationData = {
+            city: location.city || geo.city || "New York",
+            state: stateMap[location.state] || stateMap[geo.region] || "New York"
+          };
+          locationCache.set(ip, { data: locationData, timestamp: Date.now() });
+          return res.json(locationData);
+        }
+      }
+      
+      // Fallback to default coordinates if IP geolocation fails
+      const results = await geocoder.reverse({ lat: 40.7128, lon: -74.0060 });
+      if (results?.[0]) {
+        const location = results[0];
+        const locationData = {
+          city: location.city || "New York",
+          state: stateMap[location.state] || "New York"
+        };
+        locationCache.set(ip, { data: locationData, timestamp: Date.now() });
+        return res.json(locationData);
+      }
+    } catch (geocoderError) {
+      console.log('OpenStreetMap error:', geocoderError.message);
     }
 
-    // Final fallback
-    res.json({
+    // Default fallback with cache
+    const defaultLocation = {
       city: "New York",
       state: "New York"
-    });
+    };
+    locationCache.set(ip, { data: defaultLocation, timestamp: Date.now() });
+    res.json(defaultLocation);
 
   } catch (error) {
     console.error('Location detection error:', error);
-    res.json({
-      city: "New York", 
+    res.status(500).json({
+      error: 'Location detection failed',
+      city: "New York",
       state: "New York"
     });
   }
