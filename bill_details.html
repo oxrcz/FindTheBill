@@ -2,10 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Find The Bill - Bill Details</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        @media (max-width: 768px) {
+            #map {
+                height: 300px;
+            }
+            
+            .history-item {
+                padding: 15px;
+            }
+            
+            .cooldown-timer {
+                width: 90%;
+                font-size: 0.9em;
+            }
+        }
         * {
             margin: 0;
             padding: 0;
@@ -162,11 +176,41 @@
 </head>
 <body>
     <nav>
-        <a href="/">Home</a>
-        <a href="/most_tracked_bills">Most Tracked Bills</a>
-        <a href="/most_tracked_cities">Most Tracked Cities</a>
-        <a href="/about">About</a>
+        <button class="menu-button" style="display: none;">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/most_tracked_bills">Most Tracked Bills</a>
+            <a href="/most_tracked_cities">Most Tracked Cities</a>
+            <a href="/about">About</a>
+        </div>
     </nav>
+    <script>
+        const menuButton = document.querySelector('.menu-button');
+        const navLinks = document.querySelector('.nav-links');
+        
+        function toggleMenu() {
+            navLinks.classList.toggle('active');
+        }
+        
+        if (window.innerWidth <= 768) {
+            menuButton.style.display = 'block';
+            menuButton.addEventListener('click', toggleMenu);
+        }
+        
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                menuButton.style.display = 'block';
+                menuButton.addEventListener('click', toggleMenu);
+            } else {
+                menuButton.style.display = 'none';
+                navLinks.classList.remove('active');
+            }
+        });
+    </script>
 
     <div class="container">
         <h1 id="billSerial"></h1>
