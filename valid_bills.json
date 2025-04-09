@@ -6,9 +6,9 @@
     {"serial_number": "PG11078485C", "bill_value": 20},
     {"serial_number": "NL64963442A", "bill_value": 10},
     {"serial_number": "K34398102G", "bill_value": 1},
-    {"serial_number": "F56589590B", "bill_value": 1}
-    {"serial_number": "MC18645883B", "bill_value": 10}
-    {"serial_number": "JK40999317A", "bill_value": 10}
+    {"serial_number": "F56589590B", "bill_value": 1},
+    {"serial_number": "MC18645883B", "bill_value": 10},
+    {"serial_number": "JK40999317A", "bill_value": 10},
     {"serial_number": "PD23753841B", "bill_value": 10}
   ]
 }
