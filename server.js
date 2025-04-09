@@ -182,12 +182,23 @@ app.get('/api/most_tracked_cities', async (req, res) => {
 
 app.get('/api/get-location', async (req, res) => {
   try {
+    console.log('Headers received:', req.headers);
+    
     // Get IP from headers in order of reliability
     const ip = req.headers['cf-connecting-ip'] || // Cloudflare
               req.headers['x-real-ip'] || // Nginx
               req.headers['x-forwarded-for']?.split(',')[0].trim() || 
               req.headers['x-client-ip'] ||
               req.socket.remoteAddress;
+    
+    console.log('IP detection process:', {
+      cfConnectingIp: req.headers['cf-connecting-ip'],
+      xRealIp: req.headers['x-real-ip'],
+      xForwardedFor: req.headers['x-forwarded-for'],
+      xClientIp: req.headers['x-client-ip'],
+      socketRemoteAddress: req.socket.remoteAddress,
+      finalSelectedIp: ip
+    });
                
     const cleanIp = ip?.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
     
@@ -198,13 +209,19 @@ app.get('/api/get-location', async (req, res) => {
     
     console.log('Attempting location lookup for IP:', cleanIp);
     
-    const response = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
-      timeout: 8000,
-      headers: {
-        'User-Agent': 'FindTheBill.net/2.0',
-        'Accept': 'application/json'
-      }
-    });
+    let response;
+    try {
+      response = await axios.get(`https://ipapi.co/${cleanIp}/json/`, {
+        timeout: 8000,
+        headers: {
+          'User-Agent': 'FindTheBill.net/2.0',
+          'Accept': 'application/json'
+        }
+      });
+    } catch (error) {
+      console.log('Primary geolocation failed, trying fallback');
+      response = await axios.get(`https://ipwho.is/${cleanIp}`);
+    }
     
     if (response.data.error) {
       throw new Error(response.data.reason || 'IP lookup failed');
