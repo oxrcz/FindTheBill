@@ -203,7 +203,7 @@ app.get('/api/get-location', async (req, res) => {
 
     // 2. Try ipinfo.io as second option
     try {
-      const ipinfoResponse = await axios.get(`https://ipinfo.io/${ip}/json`);
+      const ipinfoResponse = await axios.get(`https://ipinfo.io/${ip}/json?token=${process.env.IPINFO_TOKEN}`);
       if (ipinfoResponse.data?.city && ipinfoResponse.data?.region) {
         return res.json({
           city: ipinfoResponse.data.city,
@@ -214,12 +214,29 @@ app.get('/api/get-location', async (req, res) => {
       console.log('ipinfo.io fallback:', ipinfoError.message);
     }
     
+    // State abbreviation mapping
+    const stateMap = {
+      'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
+      'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+      'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
+      'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
+      'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+      'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
+      'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
+      'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
+      'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
+      'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+      'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
+      'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
+      'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
+    };
+
     // 3. Try geoip-lite as third fallback
     const geo = geoip.lookup(ip);
     if (geo?.city && geo?.region) {
       return res.json({
         city: geo.city,
-        state: geo.region
+        state: stateMap[geo.region] || geo.region
       });
     }
 
