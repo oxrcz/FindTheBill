@@ -185,10 +185,24 @@ app.get('/api/get-location', async (req, res) => {
     const NodeGeocoder = require('node-geocoder');
     const geoip = require('geoip-lite');
     
-    // Try IP geolocation first
+    // Get IP address
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-    const geo = geoip.lookup(ip);
     
+    // Try ipdata.co first
+    try {
+      const ipdataResponse = await axios.get(`https://api.ipdata.co/${ip}?api-key=test`);
+      if (ipdataResponse.data?.city && ipdataResponse.data?.region) {
+        return res.json({
+          city: ipdataResponse.data.city,
+          state: ipdataResponse.data.region
+        });
+      }
+    } catch (ipdataError) {
+      console.log('ipdata.co fallback:', ipdataError.message);
+    }
+    
+    // Try geoip-lite as first fallback
+    const geo = geoip.lookup(ip);
     if (geo?.city && geo?.region) {
       return res.json({
         city: geo.city,
@@ -196,13 +210,11 @@ app.get('/api/get-location', async (req, res) => {
       });
     }
 
-    // Fallback to OpenStreetMap reverse geocoding with a default location (NYC)
+    // Try OpenStreetMap as second fallback
     const geocoder = NodeGeocoder({
       provider: 'openstreetmap'
     });
-
     const results = await geocoder.reverse({ lat: 40.7128, lon: -74.0060 });
-    
     if (results?.[0]) {
       const location = results[0];
       return res.json({
@@ -219,7 +231,6 @@ app.get('/api/get-location', async (req, res) => {
 
   } catch (error) {
     console.error('Location detection error:', error);
-    // Fallback to default location instead of error
     res.json({
       city: "New York", 
       state: "New York"
