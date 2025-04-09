@@ -188,7 +188,7 @@ app.get('/api/get-location', async (req, res) => {
     // Get IP address
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
     
-    // Try ipdata.co first
+    // 1. Try ipdata.co first
     try {
       const ipdataResponse = await axios.get(`https://api.ipdata.co/${ip}?api-key=test`);
       if (ipdataResponse.data?.city && ipdataResponse.data?.region) {
@@ -200,8 +200,21 @@ app.get('/api/get-location', async (req, res) => {
     } catch (ipdataError) {
       console.log('ipdata.co fallback:', ipdataError.message);
     }
+
+    // 2. Try ipinfo.io as second option
+    try {
+      const ipinfoResponse = await axios.get(`https://ipinfo.io/${ip}/json`);
+      if (ipinfoResponse.data?.city && ipinfoResponse.data?.region) {
+        return res.json({
+          city: ipinfoResponse.data.city,
+          state: ipinfoResponse.data.region
+        });
+      }
+    } catch (ipinfoError) {
+      console.log('ipinfo.io fallback:', ipinfoError.message);
+    }
     
-    // Try geoip-lite as first fallback
+    // 3. Try geoip-lite as third fallback
     const geo = geoip.lookup(ip);
     if (geo?.city && geo?.region) {
       return res.json({
