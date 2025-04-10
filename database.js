@@ -95,6 +95,32 @@ class JSONDatabase {
     const data = await this.readJSON(this.trackedBillsPath);
     return data.tracked_bills.filter(bill => bill.serialNumber === serialNumber);
   }
+
+  async calculateRarityIndex(serialNumber) {
+    const data = await this.readJSON(this.trackedBillsPath);
+    const allBills = data.tracked_bills;
+    const totalBills = new Set(allBills.map(bill => bill.serialNumber)).size;
+    const billCount = allBills.filter(bill => bill.serialNumber === serialNumber).length;
+    
+    // Calculate percentile rank
+    let billsWithMoreSightings = 0;
+    const billCounts = {};
+    allBills.forEach(bill => {
+      billCounts[bill.serialNumber] = (billCounts[bill.serialNumber] || 0) + 1;
+    });
+    
+    Object.values(billCounts).forEach(count => {
+      if (count > billCount) billsWithMoreSightings++;
+    });
+    
+    const percentileRank = ((totalBills - billsWithMoreSightings) / totalBills) * 100;
+    
+    return {
+      totalTrackedBills: totalBills,
+      sightings: billCount,
+      rarityPercentile: Math.round(percentileRank)
+    };
+  }
 }
 
 module.exports = new JSONDatabase();
