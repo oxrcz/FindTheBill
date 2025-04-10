@@ -10,6 +10,9 @@
     {"serial_number": "MC18645883B", "bill_value": 10},
     {"serial_number": "JK40999317A", "bill_value": 10},
     {"serial_number": "PD23753841B", "bill_value": 10},
-    {"serial_number": "L72549714A", "bill_value": 1}
+    {"serial_number": "L72549714A", "bill_value": 1},
+    {"serial_number": "J01982429A", "bill_value": 1},
+    {"serial_number": "L57324290S", "bill_value": 1},
+    {"serial_number": "MA74071350B", "bill_value": 5}
   ]
 }
