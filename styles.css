@@ -1,4 +1,3 @@
-
 * {
     margin: 0;
     padding: 0;
@@ -136,6 +135,9 @@ h1 {
     max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
 .card {
@@ -183,4 +185,120 @@ th {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
+}
+
+/* Bill Details Page Styles */
+#map {
+    height: 400px;
+    margin: 30px 0;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.info-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+.history-item {
+    background: #f8f9fa;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 8px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-left: 4px solid #0066cc;
+}
+
+.history-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.cooldown-timer {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 500;
+    animation: fadeIn 0.5s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    position: sticky;
+    top: 20px;
+    z-index: 1000;
+    border: 2px solid #ffeeba;
+}
+
+.timer-icon {
+    font-size: 24px;
+    animation: pulse 2s infinite;
+}
+
+.timer-text {
+    line-height: 1.5;
+}
+
+.time-display {
+    font-family: monospace;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #cc8500;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.no-history {
+    text-align: center;
+    color: #6c757d;
+    padding: 40px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.rarity-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.rarity-meter {
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    margin: 15px auto;
+    width: 80%;
+    overflow: hidden;
+    position: relative;
+}
+
+.rarity-fill {
+    height: 100%;
+    width: var(--percentile);
+    background: linear-gradient(90deg, #ffd700, #ff8c00);
+    border-radius: 10px;
+    transition: width 1s ease-in-out;
+}
+
+.rarity-text {
+    color: #666;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.rarity-text small {
+    color: #888;
+    display: block;
+    margin-top: 5px;
 }
