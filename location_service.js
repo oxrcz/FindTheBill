@@ -1,3 +1,17 @@
+
+const stateAbbreviations = {
+  'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+  'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+  'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+  'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+  'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+  'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+  'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+  'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+  'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+  'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+};
+
 const axios = require('axios');
 
 async function getLocationFromIpinfo(ip) {
@@ -5,10 +19,14 @@ async function getLocationFromIpinfo(ip) {
     console.log('Attempting to get location from ipinfo.io...');
     const response = await axios.get(`https://ipinfo.io/${ip}/json`);
     if (response.data?.city && response.data?.region) {
+      const state = stateAbbreviations[response.data.region] || response.data.region;
+      if (state !== response.data.region) {
+        console.log(`Un-abbreviated state from ${response.data.region} to ${state}`);
+      }
       console.log('Successfully got location from ipinfo.io');
       return {
         city: response.data.city,
-        state: response.data.region,
+        state: state,
         approximate: true
       };
     }
@@ -25,10 +43,14 @@ async function getLocationFromIpApi(ip) {
     console.log('Attempting to get location from ipapi.co...');
     const response = await axios.get(`https://ipapi.co/${ip}/json/`);
     if (response.data?.city && response.data?.region) {
+      const state = stateAbbreviations[response.data.region] || response.data.region;
+      if (state !== response.data.region) {
+        console.log(`Un-abbreviated state from ${response.data.region} to ${state}`);
+      }
       console.log('Got approximate location from ipapi.co');
       return {
         city: response.data.city,
-        state: response.data.region,
+        state: state,
         approximate: true
       };
     }
