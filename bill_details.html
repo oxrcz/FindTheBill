@@ -328,6 +328,17 @@
                         <p style="text-align: center; font-size: 1.2em;">
                             Value: $${data.billValue} | Times Tracked: ${data.trackedCount}
                         </p>
+                        <div class="rarity-section">
+                            <h3>Bill Rarity Index</h3>
+                            <div class="rarity-meter" style="--percentile: ${data.rarity.rarityPercentile}%">
+                                <div class="rarity-fill"></div>
+                            </div>
+                            <p class="rarity-text">
+                                This bill is rarer than ${data.rarity.rarityPercentile}% of tracked bills
+                                <br>
+                                <small>(${data.rarity.sightings} sightings out of ${data.rarity.totalTrackedBills} total tracked bills)</small>
+                            </p>
+                        </div>
                     `;
                     container.appendChild(infoSection);
 
@@ -397,6 +408,7 @@
                         setTimeout(() => clearInterval(timerInterval), (remainingSeconds + 1) * 1000);
                     }
                 })
+                
                 .catch(error => {
                     container.innerHTML = `<div class="no-history">Error: ${error.message}</div>`;
                 });
