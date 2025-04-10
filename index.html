@@ -160,7 +160,7 @@
         async function getLocation() {
             const response = await fetch('/api/get-location');
             const data = await response.json();
-            document.getElementById('locationInfo').textContent = `Your location: ${data.city}, ${data.state}`;
+            document.getElementById('locationInfo').textContent = `Your approximate location: ${data.city}, ${data.state}`;
             return data;
         }
 
