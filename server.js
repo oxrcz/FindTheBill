@@ -104,11 +104,13 @@ app.get('/api/bill/:serial', async (req, res) => {
       // Sort history by timestamp
       enrichedHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+      const rarityData = await db.calculateRarityIndex(serialNumber);
       res.json({
         trackedHistory: enrichedHistory,
         trackedCount: trackedHistory.length,
         billValue: validBill.bill_value,
-        cooldownSeconds: cooldownSeconds
+        cooldownSeconds: cooldownSeconds,
+        rarity: rarityData
       });
     } else {
       res.status(404).json({ error: 'Bill not found' });
