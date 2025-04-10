@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | Find The Bill</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .error-container {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .error-code {
+            font-size: 8em;
+            color: #0066cc;
+            margin: 0;
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .error-message {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+
+        .money-icon {
+            font-size: 4em;
+            margin: 20px 0;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .home-button {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .home-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,102,204,0.2);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <button class="menu-button" style="display: none;">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/most_tracked_bills">Most Tracked Bills</a>
+            <a href="/most_tracked_cities">Most Tracked Cities</a>
+            <a href="/about">About</a>
+        </div>
+    </nav>
+
+    <div class="error-container">
+        <div class="logo">FindTheBill.net</div>
+        <div class="money-icon">💸</div>
+        <h1 class="error-code">404</h1>
+        <p class="error-message">Oops! This bill seems to have gone missing...</p>
+        <a href="/" class="home-button">Back to Home</a>
+    </div>
+
+    <script>
+        const menuButton = document.querySelector('.menu-button');
+        const navLinks = document.querySelector('.nav-links');
+        
+        function toggleMenu() {
+            navLinks.classList.toggle('active');
+        }
+        
+        if (window.innerWidth <= 768) {
+            menuButton.style.display = 'block';
+            menuButton.addEventListener('click', toggleMenu);
+        }
+        
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                menuButton.style.display = 'block';
+                menuButton.addEventListener('click', toggleMenu);
+            } else {
+                menuButton.style.display = 'none';
+                navLinks.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
