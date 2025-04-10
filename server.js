@@ -213,6 +213,11 @@ app.get('/api/get-location', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+// 404 handler - must be placed after all other routes
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, '404.html'));
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
