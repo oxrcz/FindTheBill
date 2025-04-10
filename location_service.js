@@ -1,15 +1,35 @@
-
 const axios = require('axios');
+
+async function getLocationFromIpinfo(ip) {
+  try {
+    console.log('Attempting to get location from ipinfo.io...');
+    const response = await axios.get(`https://ipinfo.io/${ip}/json`);
+    if (response.data?.city && response.data?.region) {
+      console.log('Successfully got location from ipinfo.io');
+      return {
+        city: response.data.city,
+        state: response.data.region,
+        approximate: true
+      };
+    }
+    console.log('ipinfo.io response missing city or state data');
+    return null;
+  } catch (error) {
+    console.error('ipinfo.io error:', error.message);
+    return null;
+  }
+}
 
 async function getLocationFromIpApi(ip) {
   try {
     console.log('Attempting to get location from ipapi.co...');
     const response = await axios.get(`https://ipapi.co/${ip}/json/`);
     if (response.data?.city && response.data?.region) {
-      console.log('Successfully got location from ipapi.co');
+      console.log('Got approximate location from ipapi.co');
       return {
         city: response.data.city,
-        state: response.data.region
+        state: response.data.region,
+        approximate: true
       };
     }
     console.log('ipapi.co response missing city or state data');
@@ -63,30 +83,31 @@ async function getLocationFromNavigator() {
 
 async function getLocation(ip) {
   try {
-    // Try ipapi.co first
-    const ipLocation = await getLocationFromIpApi(ip);
-    if (ipLocation) {
-      return ipLocation;
+    // Try ipinfo.io first
+    const ipinfoLocation = await getLocationFromIpinfo(ip);
+    if (ipinfoLocation) {
+      return ipinfoLocation;
     }
-    console.log('IP location failed, trying browser geolocation...');
 
-    // Fallback to geolocation
-    const geoLocation = await getLocationFromNavigator();
-    if (geoLocation) {
-      return geoLocation;
+    console.log('ipinfo.io failed, trying ipapi.co...');
+    // Fallback to ipapi.co
+    const ipapiLocation = await getLocationFromIpApi(ip);
+    if (ipapiLocation) {
+      return ipapiLocation;
     }
+
     console.log('All location methods failed, using default location');
-
-    // Default fallback
     return {
       city: "New York",
-      state: "New York"
+      state: "New York",
+      approximate: true
     };
   } catch (error) {
     console.error('Location detection error:', error);
     return {
       city: "New York",
-      state: "New York"
+      state: "New York",
+      approximate: true
     };
   }
 }
